@@ -70,16 +70,21 @@ else
 fi
 make -j"$JOBS"
 
-# Копирование артефактов
+# Копирование бинарей и либ
 echo "Копирование файлов в $INSTALL_PREFIX..."
-install -Dm755 bin/cryptoapp "$INSTALL_PREFIX/bin/cryptoapp"
-install -Dm755 lib/libMagicSquareLib.* "$INSTALL_PREFIX/lib/"
+mkdir -p "$INSTALL_PREFIX/bin"
+install -m755 "bin/cryptoapp" "$INSTALL_PREFIX/bin/cryptoapp"
 
+mkdir -p "$INSTALL_PREFIX/lib"
+install -m755 lib/libMagicSquareLib.* "$INSTALL_PREFIX/lib/"
+
+# Документация
 echo "Копирование документации..."
-install -d "$INSTALL_PREFIX/share/doc/cryptoapp"
-install -m644 ../README.md "$INSTALL_PREFIX/share/doc/cryptoapp/"
-install -m644 ../LICENSE "$INSTALL_PREFIX/share/doc/cryptoapp/"
+mkdir -p "$INSTALL_PREFIX/share/doc/cryptoapp"
+install -m644 ../README.md "$INSTALL_PREFIX/share/doc/cryptoapp/README.md"
+install -m644 ../LICENSE    "$INSTALL_PREFIX/share/doc/cryptoapp/LICENSE"
 
+# Конфиг
 echo "Установка конфига в /etc/cryptoapp..."
 install -d /etc/cryptoapp
 if [ ! -f /etc/cryptoapp/config.cfg ]; then
