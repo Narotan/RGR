@@ -1,9 +1,9 @@
 #!/bin/bash
-# setup.sh — автоматическая сборка и установка CryptoApp
+# setup.sh — автоматическая сборка и установка CryptoApp без конфига
 
 set -e
 
-# 1. Проверка root
+# Проверка прав root
 if [ "$(id -u)" -ne 0 ]; then
   echo "Ошибка: скрипт нужно запускать с правами root" >&2
   exit 1
@@ -12,7 +12,7 @@ fi
 OS=$(uname -s)
 echo "Установка CryptoApp на $OS..."
 
-# 2. Зависимости
+# 1. Установка зависимостей
 echo "Установка системных зависимостей..."
 if [ "$OS" = "Linux" ]; then
   if [ -f /etc/debian_version ]; then
@@ -46,7 +46,7 @@ else
   exit 1
 fi
 
-# 3. Ввод пути установки
+# 2. Запрос пути установки
 read -p "Введите путь установки (по умолчанию /usr/local): " INSTALL_PREFIX
 INSTALL_PREFIX=${INSTALL_PREFIX:-/usr/local}
 if [[ "$INSTALL_PREFIX" == ~* ]]; then
@@ -54,13 +54,13 @@ if [[ "$INSTALL_PREFIX" == ~* ]]; then
 fi
 echo "Устанавливаем в: $INSTALL_PREFIX"
 
-# 4. Сборка
+# 3. Сборка
 echo "Сборка проекта..."
 mkdir -p build
 cd build
 cmake .. -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX"
 
-# потоков для make
+# Определяем число потоков
 if command -v nproc &>/dev/null; then
   JOBS=$(nproc)
 elif [ "$OS" = "Darwin" ]; then
@@ -71,17 +71,11 @@ fi
 
 make -j"$JOBS"
 
-# 5. Установка (через cmake install)
+# 4. Установка через CMake
 echo "Установка файлов..."
 make install
 
-# 6. Отдельно копируем конфиг в /etc
-if [ ! -f /etc/cryptoapp/config.cfg ]; then
-  mkdir -p /etc/cryptoapp
-  cp ../config.cfg.example /etc/cryptoapp/config.cfg
-fi
-
-# 7. Обновляем кэш библиотек на Linux
+# 5. Обновление кэша библиотек на Linux
 if [ "$OS" = "Linux" ]; then
   ldconfig
 fi
@@ -89,6 +83,5 @@ fi
 echo -e "\n\033[32mУстановка завершена успешно!\033[0m"
 echo "  Бинарь: $INSTALL_PREFIX/bin/cryptoapp"
 echo "  Библиотеки: $INSTALL_PREFIX/lib/"
-echo "  Документы: $INSTALL_PREFIX/share/doc/cryptoapp/README.md"
-echo "  Конфиг: /etc/cryptoapp/config.cfg"
-echo -e "\nТеперь просто выполните: cryptoapp\n"
+echo "  Документация: $INSTALL_PREFIX/share/doc/cryptoapp/README.md"
+echo -e "\nТеперь для запуска просто выполните: cryptoapp\n"
