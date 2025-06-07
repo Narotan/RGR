@@ -6,57 +6,90 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-# Путь установки по умолчанию
-DEFAULT_INSTALL_PREFIX="/usr/local"
-
-# Запрос пути установки у пользователя
-echo "Введите путь для установки приложения (по умолчанию: $DEFAULT_INSTALL_PREFIX):"
-read -r USER_INPUT
-
-# Если пользователь ввёл пустую строку — используем путь по умолчанию
-if [ -z "$USER_INPUT" ]; then
-    INSTALL_PREFIX="$DEFAULT_INSTALL_PREFIX"
-else
-    INSTALL_PREFIX="$USER_INPUT"
-fi
-
-echo "Приложение будет установлено в: $INSTALL_PREFIX"
-
 # Определение ОС
 OS=$(uname -s)
 ARCH=$(uname -m)
 
 echo "Установка CryptoApp на $OS $ARCH..."
 
-# --- здесь вставляем код установки зависимостей без изменений ---
+# Установка зависимостей
+echo "Установка системных зависимостей..."
+if [ "$OS" = "Linux" ]; then
+    # Для Debian/Ubuntu
+    if [ -f /etc/debian_version ]; then
+        apt-get update
+        apt-get install -y build-essential cmake
+    elif [ -f /etc/fedora-release ]; then
+        dnf groupinstall -y "Development Tools"
+        dnf install -y cmake
+    elif [ -f /etc/arch-release ]; then
+        pacman -Sy --noconfirm base-devel cmake
+    else
+        echo "Не удалось определить дистрибутив Linux. Установите вручную:"
+        echo " - build-essential (gcc, g++, make)"
+        echo " - cmake"
+    fi
+elif [ "$OS" = "Darwin" ]; then
+    if ! xcode-select -p &>/dev/null; then
+        echo "Установка Xcode Command Line Tools..."
+        xcode-select --install
+        until xcode-select -p &>/dev/null; do
+            sleep 5
+        done
+    fi
+    if ! command -v brew &>/dev/null; then
+        echo "Установка Homebrew..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    fi
+    if ! command -v cmake &>/dev/null; then
+        brew install cmake
+    fi
+else
+    echo "Неподдерживаемая ОС: $OS" >&2
+    exit 1
+fi
+
+# Запрос пути установки с дефолтом
+read -p "Введите путь установки приложения (по умолчанию /usr/local): " INSTALL_PREFIX
+
+# Если пустой ввод — дефолт
+if [ -z "$INSTALL_PREFIX" ]; then
+    INSTALL_PREFIX="/usr/local"
+fi
+
+# Разворачивание ~ в путь
+if [[ "$INSTALL_PREFIX" == ~* ]]; then
+    INSTALL_PREFIX="${HOME}${INSTALL_PREFIX:1}"
+fi
+
+echo "Установка приложения в: $INSTALL_PREFIX"
 
 # Сборка проекта
 echo "Сборка проекта..."
 mkdir -p build
-cd build || exit 1
+cd build || { echo "Не удалось перейти в папку build"; exit 1; }
 cmake ..
 if ! make -j"$(nproc)"; then
     echo "Ошибка сборки проекта!" >&2
     exit 1
 fi
 
-# Установка файлов с выбранным путём
-echo "Установка приложения в систему..."
+# Установка файлов
+echo "Копирование файлов в систему..."
 install -Dm755 bin/cryptoapp "$INSTALL_PREFIX/bin/cryptoapp"
 install -Dm755 lib/libMagicSquareLib.* "$INSTALL_PREFIX/lib/"
 
-# Документация
 install -d "$INSTALL_PREFIX/share/doc/cryptoapp"
 install -m644 ../README.md "$INSTALL_PREFIX/share/doc/cryptoapp/"
 install -m644 ../LICENSE "$INSTALL_PREFIX/share/doc/cryptoapp/"
 
-# Конфигурация
 install -d /etc/cryptoapp
 if [ ! -f /etc/cryptoapp/config.cfg ]; then
     install -m644 ../config.cfg.example /etc/cryptoapp/config.cfg
 fi
 
-# Обновление кэша библиотек (Linux)
 if [ "$OS" = "Linux" ]; then
     ldconfig
 fi
