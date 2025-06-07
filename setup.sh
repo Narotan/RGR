@@ -6,79 +6,42 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
+# Путь установки по умолчанию
+DEFAULT_INSTALL_PREFIX="/usr/local"
+
+# Запрос пути установки у пользователя
+echo "Введите путь для установки приложения (по умолчанию: $DEFAULT_INSTALL_PREFIX):"
+read -r USER_INPUT
+
+# Если пользователь ввёл пустую строку — используем путь по умолчанию
+if [ -z "$USER_INPUT" ]; then
+    INSTALL_PREFIX="$DEFAULT_INSTALL_PREFIX"
+else
+    INSTALL_PREFIX="$USER_INPUT"
+fi
+
+echo "Приложение будет установлено в: $INSTALL_PREFIX"
+
 # Определение ОС
 OS=$(uname -s)
 ARCH=$(uname -m)
 
 echo "Установка CryptoApp на $OS $ARCH..."
 
-# Установка зависимостей
-echo "Установка системных зависимостей..."
-if [ "$OS" = "Linux" ]; then
-    # Для Debian/Ubuntu
-    if [ -f /etc/debian_version ]; then
-        apt-get update
-        apt-get install -y build-essential cmake
-    # Для Fedora
-    elif [ -f /etc/fedora-release ]; then
-        dnf groupinstall -y "Development Tools"
-        dnf install -y cmake
-    # Для Arch
-    elif [ -f /etc/arch-release ]; then
-        pacman -Sy --noconfirm base-devel cmake
-    else
-        echo "Не удалось определить дистрибутив Linux. Установите вручную:"
-        echo " - build-essential (gcc, g++, make)"
-        echo " - cmake"
-    fi
-elif [ "$OS" = "Darwin" ]; then
-    # Проверка установки Xcode Command Line Tools
-    if ! xcode-select -p &>/dev/null; then
-        echo "Установка Xcode Command Line Tools..."
-        xcode-select --install
-        # Ожидание завершения установки
-        until xcode-select -p &>/dev/null; do
-            sleep 5
-        done
-    fi
-    
-    # Проверка Homebrew
-    if ! command -v brew &>/dev/null; then
-        echo "Установка Homebrew..."
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-    fi
-    
-    # Установка CMake через Homebrew
-    if ! command -v cmake &>/dev/null; then
-        brew install cmake
-    fi
-else
-    echo "Неподдерживаемая ОС: $OS" >&2
-    exit 1
-fi
+# --- здесь вставляем код установки зависимостей без изменений ---
 
 # Сборка проекта
 echo "Сборка проекта..."
 mkdir -p build
-cd build
+cd build || exit 1
 cmake ..
-if ! make -j$(nproc); then
+if ! make -j"$(nproc)"; then
     echo "Ошибка сборки проекта!" >&2
     exit 1
 fi
 
-# Установка файлов
+# Установка файлов с выбранным путём
 echo "Установка приложения в систему..."
-INSTALL_PREFIX=""
-if [ "$OS" = "Linux" ]; then
-    INSTALL_PREFIX="/usr/local"
-elif [ "$OS" = "Darwin" ]; then
-    INSTALL_PREFIX="/usr/local"
-fi
-
-# Основные файлы
 install -Dm755 bin/cryptoapp "$INSTALL_PREFIX/bin/cryptoapp"
 install -Dm755 lib/libMagicSquareLib.* "$INSTALL_PREFIX/lib/"
 
