@@ -1,21 +1,20 @@
 #!/bin/bash
 
-# Проверка прав администратора
+set -e
+
+# Проверка прав root (для установки в системные каталоги)
 if [ "$(id -u)" -ne 0 ]; then
     echo "Этот скрипт должен запускаться с правами root" >&2
     exit 1
 fi
 
-# Определение ОС
 OS=$(uname -s)
 ARCH=$(uname -m)
 
 echo "Установка CryptoApp на $OS $ARCH..."
 
-# Установка зависимостей
-echo "Установка системных зависимостей..."
+# Установка системных зависимостей (пример, можно расширять)
 if [ "$OS" = "Linux" ]; then
-    # Для Debian/Ubuntu
     if [ -f /etc/debian_version ]; then
         apt-get update
         apt-get install -y build-essential cmake
@@ -25,22 +24,17 @@ if [ "$OS" = "Linux" ]; then
     elif [ -f /etc/arch-release ]; then
         pacman -Sy --noconfirm base-devel cmake
     else
-        echo "Не удалось определить дистрибутив Linux. Установите вручную:"
-        echo " - build-essential (gcc, g++, make)"
-        echo " - cmake"
+        echo "Пожалуйста, установите вручную gcc, make и cmake"
     fi
 elif [ "$OS" = "Darwin" ]; then
     if ! xcode-select -p &>/dev/null; then
         echo "Установка Xcode Command Line Tools..."
         xcode-select --install
-        until xcode-select -p &>/dev/null; do
-            sleep 5
-        done
+        until xcode-select -p &>/dev/null; do sleep 5; done
     fi
     if ! command -v brew &>/dev/null; then
         echo "Установка Homebrew..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
         eval "$(/opt/homebrew/bin/brew shellenv)"
     fi
     if ! command -v cmake &>/dev/null; then
@@ -53,43 +47,42 @@ fi
 
 # Запрос пути установки с дефолтом
 read -p "Введите путь установки приложения (по умолчанию /usr/local): " INSTALL_PREFIX
-
-# Если пустой ввод — дефолт
-if [ -z "$INSTALL_PREFIX" ]; then
-    INSTALL_PREFIX="/usr/local"
-fi
-
-# Разворачивание ~ в путь
-if [[ "$INSTALL_PREFIX" == ~* ]]; then
-    INSTALL_PREFIX="${HOME}${INSTALL_PREFIX:1}"
-fi
-
+INSTALL_PREFIX=${INSTALL_PREFIX:-/usr/local}
 echo "Установка приложения в: $INSTALL_PREFIX"
 
-# Сборка проекта
-echo "Сборка проекта..."
+# Переходим в корень проекта (предполагается, что скрипт запускается из корня)
+PROJECT_ROOT=$(pwd)
+
+# Создаем и переходим в папку сборки
 mkdir -p build
-cd build || { echo "Не удалось перейти в папку build"; exit 1; }
-cmake ..
-if ! make -j"$(nproc)"; then
-    echo "Ошибка сборки проекта!" >&2
-    exit 1
+cd build
+
+# Генерируем Makefile с указанием пути установки
+cmake .. -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX"
+
+# Определяем число потоков для make
+if command -v nproc &>/dev/null; then
+    NUM_PROC=$(nproc)
+elif [[ "$OS" == "Darwin" ]]; then
+    NUM_PROC=$(sysctl -n hw.ncpu)
+else
+    NUM_PROC=1
 fi
 
-# Установка файлов
-echo "Копирование файлов в систему..."
-install -Dm755 bin/cryptoapp "$INSTALL_PREFIX/bin/cryptoapp"
-install -Dm755 lib/libMagicSquareLib.* "$INSTALL_PREFIX/lib/"
+# Сборка
+make -j"$NUM_PROC"
 
-install -d "$INSTALL_PREFIX/share/doc/cryptoapp"
-install -m644 ../README.md "$INSTALL_PREFIX/share/doc/cryptoapp/"
-install -m644 ../LICENSE "$INSTALL_PREFIX/share/doc/cryptoapp/"
+# Установка через cmake install (воспользуемся встроенным механизмом)
+make install
 
-install -d /etc/cryptoapp
+# Проверка установки конфигурации в /etc
 if [ ! -f /etc/cryptoapp/config.cfg ]; then
-    install -m644 ../config.cfg.example /etc/cryptoapp/config.cfg
+    echo "Копирование конфигурации в /etc/cryptoapp/config.cfg"
+    mkdir -p /etc/cryptoapp
+    cp "$PROJECT_ROOT/config.cfg.example" /etc/cryptoapp/config.cfg
 fi
 
+# Обновление кэша библиотек для Linux
 if [ "$OS" = "Linux" ]; then
     ldconfig
 fi
@@ -100,5 +93,4 @@ echo "Библиотека: $INSTALL_PREFIX/lib/libMagicSquareLib.*"
 echo "Конфигурация: /etc/cryptoapp/config.cfg"
 echo "Документация: $INSTALL_PREFIX/share/doc/cryptoapp"
 echo ""
-echo "Запуск приложения:"
-echo "  $ cryptoapp"
+echo "Для запуска приложения введите: cryptoapp"
