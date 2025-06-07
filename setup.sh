@@ -1,8 +1,7 @@
 #!/bin/bash
-
 set -e
 
-# Проверка прав root (для установки в системные каталоги)
+# Проверка прав администратора
 if [ "$(id -u)" -ne 0 ]; then
     echo "Этот скрипт должен запускаться с правами root" >&2
     exit 1
@@ -10,10 +9,10 @@ fi
 
 OS=$(uname -s)
 ARCH=$(uname -m)
-
 echo "Установка CryptoApp на $OS $ARCH..."
 
-# Установка системных зависимостей (пример, можно расширять)
+# Установка системных зависимостей (пример)
+echo "Установка системных зависимостей..."
 if [ "$OS" = "Linux" ]; then
     if [ -f /etc/debian_version ]; then
         apt-get update
@@ -24,8 +23,9 @@ if [ "$OS" = "Linux" ]; then
     elif [ -f /etc/arch-release ]; then
         pacman -Sy --noconfirm base-devel cmake
     else
-        echo "Пожалуйста, установите вручную gcc, make и cmake"
+        echo "Не удалось определить дистрибутив Linux. Установите gcc, make и cmake вручную."
     fi
+
 elif [ "$OS" = "Darwin" ]; then
     if ! xcode-select -p &>/dev/null; then
         echo "Установка Xcode Command Line Tools..."
@@ -45,52 +45,55 @@ else
     exit 1
 fi
 
-# Запрос пути установки с дефолтом
-read -p "Введите путь установки приложения (по умолчанию /usr/local): " INSTALL_PREFIX
+# Интерктивный ввод пути установки
+read -p "Введите путь установки (по умолчанию /usr/local): " INSTALL_PREFIX
 INSTALL_PREFIX=${INSTALL_PREFIX:-/usr/local}
-echo "Установка приложения в: $INSTALL_PREFIX"
 
-# Переходим в корень проекта (предполагается, что скрипт запускается из корня)
-PROJECT_ROOT=$(pwd)
-
-# Создаем и переходим в папку сборки
-mkdir -p build
-cd build
-
-# Генерируем Makefile с указанием пути установки
-cmake .. -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX"
-
-# Определяем число потоков для make
-if command -v nproc &>/dev/null; then
-    NUM_PROC=$(nproc)
-elif [[ "$OS" == "Darwin" ]]; then
-    NUM_PROC=$(sysctl -n hw.ncpu)
-else
-    NUM_PROC=1
+# Разворачиваем '~' в $HOME, если надо
+if [[ "$INSTALL_PREFIX" == ~* ]]; then
+    INSTALL_PREFIX="${HOME}${INSTALL_PREFIX:1}"
 fi
+
+echo "Устанавливаем в: $INSTALL_PREFIX"
 
 # Сборка
-make -j"$NUM_PROC"
+echo "Сборка проекта..."
+mkdir -p build && cd build
+cmake .. 
+# Определяем число потоков
+if command -v nproc &>/dev/null; then
+    JOBS=$(nproc)
+elif [[ "$OS" == "Darwin" ]]; then
+    JOBS=$(sysctl -n hw.ncpu)
+else
+    JOBS=1
+fi
+make -j"$JOBS"
 
-# Установка через cmake install (воспользуемся встроенным механизмом)
-make install
+# Копирование артефактов
+echo "Копирование файлов в $INSTALL_PREFIX..."
+install -Dm755 bin/cryptoapp "$INSTALL_PREFIX/bin/cryptoapp"
+install -Dm755 lib/libMagicSquareLib.* "$INSTALL_PREFIX/lib/"
 
-# Проверка установки конфигурации в /etc
+echo "Копирование документации..."
+install -d "$INSTALL_PREFIX/share/doc/cryptoapp"
+install -m644 ../README.md "$INSTALL_PREFIX/share/doc/cryptoapp/"
+install -m644 ../LICENSE "$INSTALL_PREFIX/share/doc/cryptoapp/"
+
+echo "Установка конфига в /etc/cryptoapp..."
+install -d /etc/cryptoapp
 if [ ! -f /etc/cryptoapp/config.cfg ]; then
-    echo "Копирование конфигурации в /etc/cryptoapp/config.cfg"
-    mkdir -p /etc/cryptoapp
-    cp "$PROJECT_ROOT/config.cfg.example" /etc/cryptoapp/config.cfg
+    install -m644 ../config.cfg.example /etc/cryptoapp/config.cfg
 fi
 
-# Обновление кэша библиотек для Linux
+# Для Linux обновляем кэш библиотек
 if [ "$OS" = "Linux" ]; then
     ldconfig
 fi
 
 echo -e "\n\033[32mУстановка завершена успешно!\033[0m"
-echo "Приложение установлено в: $INSTALL_PREFIX/bin/cryptoapp"
-echo "Библиотека: $INSTALL_PREFIX/lib/libMagicSquareLib.*"
-echo "Конфигурация: /etc/cryptoapp/config.cfg"
-echo "Документация: $INSTALL_PREFIX/share/doc/cryptoapp"
-echo ""
-echo "Для запуска приложения введите: cryptoapp"
+echo "  Бинарь: $INSTALL_PREFIX/bin/cryptoapp"
+echo "  Библиотека: $INSTALL_PREFIX/lib/libMagicSquareLib.*"
+echo "  Конфиг: /etc/cryptoapp/config.cfg"
+echo "  Документация: $INSTALL_PREFIX/share/doc/cryptoapp"
+echo -e "\nЗапускайте просто: cryptoapp\n"
