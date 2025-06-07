@@ -4,10 +4,15 @@ project(CryptoApp LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# --- Настройка RPATH для macOS ---
+set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+set(CMAKE_SKIP_BUILD_RPATH OFF)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH OFF)
+set(CMAKE_INSTALL_RPATH "@executable_path/../lib")
+
 # Папки вывода сборки
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 
 # Исходники основного приложения
 set(MAIN_SOURCES
@@ -29,25 +34,30 @@ target_include_directories(ColumnarLib     PUBLIC ${PROJECT_SOURCE_DIR}/include)
 # Исполняемый файл
 add_executable(cryptoapp ${MAIN_SOURCES})
 
-# Линковка библиотек
+# Линкуем все библиотеки
 target_link_libraries(cryptoapp
     MagicSquareLib
     HillLib
     ColumnarLib
 )
 
-# Устанавливаем бинарник
+# Прописать RPATH в исполняемом файле
+set_target_properties(cryptoapp PROPERTIES
+    INSTALL_RPATH "@executable_path/../lib"
+)
+
+# ----------------------------------------
+# Инструкции для установки
+# ----------------------------------------
+
 install(TARGETS cryptoapp
     RUNTIME DESTINATION bin
 )
 
-# Устанавливаем библиотеки
 install(TARGETS MagicSquareLib HillLib ColumnarLib
     LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
 )
 
-# Устанавливаем документацию (только README)
 install(FILES
     ${PROJECT_SOURCE_DIR}/README.md
     DESTINATION share/doc/cryptoapp
