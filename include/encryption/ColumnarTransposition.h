@@ -5,6 +5,7 @@
 #include <vector>
 #include <stdexcept>
 #include <random>
+#include <algorithm>
 
 using namespace std;
 

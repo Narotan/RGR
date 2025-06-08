@@ -1,4 +1,4 @@
-#include "/Users/danil/education/proga/rgr/include/encryption/HillChiper.h"
+#include "../../include/encryption/HillChiper.h""
 
 using namespace std;
 
