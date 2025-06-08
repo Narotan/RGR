@@ -49,7 +49,12 @@
 ## 📦 Сборка и запуск
 
 Для удобства создан скрипт сборки:
-
+```bash
+git clone https://github.com/Narotan/RGR
+```
+```bash
+cd RGR
+```
 ```bash
 chmod +x setup.sh
 ```
