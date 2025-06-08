@@ -1,71 +1,78 @@
-#include <vector>
-
 #include "../../include/encryption/MagicSquareCipher.h"
 
 using namespace std;
 
-// Построение магического квадрата нечётного порядка
-vector<vector<int>> buildMagicSquare(int n) {
-  vector<vector<int>> square(n, vector<int>(n, 0));
-  int num = 1, i = 0, j = n / 2;
+// строит магический квадрат нечётного порядка
+vector<vector<int>> buildMagicSquare(int size) {
+    vector<vector<int>> square(size, vector<int>(size, 0));
+    int value = 1;
+    int row = 0, col = size / 2;
 
-  while (num <= n * n) {
-    square[i][j] = num++;
-    int newi = (i - 1 + n) % n;
-    int newj = (j + 1) % n;
-    if (square[newi][newj] != 0)
-      i = (i + 1) % n;
-    else {
-      i = newi;
-      j = newj;
+    while (value <= size * size) {
+        square[row][col] = value++;
+        int nextRow = (row - 1 + size) % size;
+        int nextCol = (col + 1) % size;
+
+        if (square[nextRow][nextCol] != 0) {
+            row = (row + 1) % size;
+        } else {
+            row = nextRow;
+            col = nextCol;
+        }
     }
-  }
-  return square;
+
+    return square;
 }
 
-// Шифрование текста с помощью магического квадрата
-wstring encryptWithMagicSquare(const wstring& text, int n) {
-  vector<vector<int>> square = buildMagicSquare(n);
-  vector<wchar_t> buffer(n * n, L' ');
+// шифрует текст с помощью магического квадрата
+wstring encryptWithMagicSquare(const wstring& inputText, int size) {
+    vector<vector<int>> square = buildMagicSquare(size);
+    vector<wchar_t> encoded(size * size, L' ');
 
-  for (int i = 0; i < text.size() && i < n * n; ++i) {
-    int row = i / n;
-    int col = i % n;
-    int index = square[row][col] - 1;
-    if (index < buffer.size()) {
-      buffer[index] = text[i];
+    for (int pos = 0;
+         pos < static_cast<int>(inputText.size()) && pos < size * size; ++pos) {
+        int r = pos / size;
+        int c = pos % size;
+        int targetIdx = square[r][c] - 1;
+
+        if (targetIdx < static_cast<int>(encoded.size())) {
+            encoded[targetIdx] = inputText[pos];
+        }
     }
-  }
 
-  return wstring(buffer.begin(), buffer.end());
+    return wstring(encoded.begin(), encoded.end());
 }
 
-// Расшифровка текста, зашифрованного магическим квадратом
-wstring decryptWithMagicSquare(const wstring& cipherText, int n) {
-  vector<vector<int>> square = buildMagicSquare(n);
-  vector<wchar_t> original(n * n, L' ');
+// расшифровывает текст, зашифрованный магическим квадратом
+wstring decryptWithMagicSquare(const wstring& encryptedText, int size) {
+    vector<vector<int>> square = buildMagicSquare(size);
+    vector<wchar_t> decoded(size * size, L' ');
 
-  for (int i = 0; i < n * n; ++i) {
-    int row = i / n;
-    int col = i % n;
-    int index = square[row][col] - 1;
-    if (index < cipherText.size()) {
-      original[i] = cipherText[index];
-    } else {
-      original[i] = L' ';
+    for (int pos = 0; pos < size * size; ++pos) {
+        int r = pos / size;
+        int c = pos % size;
+        int sourceIdx = square[r][c] - 1;
+
+        if (sourceIdx < static_cast<int>(encryptedText.size())) {
+            decoded[pos] = encryptedText[sourceIdx];
+        } else {
+            decoded[pos] = L' ';
+        }
     }
-  }
 
-  return wstring(original.begin(), original.end());
+    return wstring(decoded.begin(), decoded.end());
 }
 
+// генерирует минимальное нечётное n, чтобы n×n >= длина текста
 int generateMagicSquareKey(int textLength) {
-  if (textLength <= 0) {
-    return 1;
-  }
-  int n = static_cast<int>(ceil(sqrt(static_cast<double>(textLength))));
-  if (n % 2 == 0) {
-    n++;
-  }
-  return n;
+    if (textLength <= 0) {
+        return 1;
+    }
+
+    int side = static_cast<int>(ceil(sqrt(static_cast<double>(textLength))));
+    if (side % 2 == 0) {
+        side++;
+    }
+
+    return side;
 }

@@ -1,155 +1,154 @@
-#include "/Users/danil/education/proga/rgr/include/encryption/HillChiper.h"
+#include "/Users/danil/Documents/GitHub/RGR/include/encryption/ColumnarTransposition.h"
 
 using namespace std;
 
-static wstring_convert<codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+// генерирует перестановку столбцов на основе ключа
+static vector<int> generateKeyPermutation(const wstring& key);
 
-vector<uint8_t> wstringToUtf8Bytes(const wstring& w) {
-  string utf8str = converter.to_bytes(w);
-  vector<uint8_t> bytes(utf8str.begin(), utf8str.end());
-  return bytes;
+// вычисляет обратную перестановку для дешифрования
+static vector<int> inversePermutation(const vector<int>& permutation);
+
+static vector<int> generateKeyPermutation(const wstring& key) {
+    int keyLength = key.length();
+    if (keyLength == 0) {
+        throw invalid_argument("ключ не может быть пустым");
+    }
+
+    vector<pair<wchar_t, int>> indexedKey;
+    for (int index = 0; index < keyLength; index++) {
+        indexedKey.push_back(make_pair(key[index], index));
+    }
+
+    sort(indexedKey.begin(), indexedKey.end(),
+         [](const pair<wchar_t, int>& a, const pair<wchar_t, int>& b) {
+             return (a.first == b.first) ? (a.second < b.second)
+                                         : (a.first < b.first);
+         });
+
+    vector<int> permutation(keyLength);
+    for (int rank = 0; rank < keyLength; rank++) {
+        permutation[indexedKey[rank].second] = rank + 1;
+    }
+
+    return permutation;
 }
 
-wstring utf8BytesToWString(const vector<uint8_t>& bytes) {
-  string utf8str(bytes.begin(), bytes.end());
-  wstring w = converter.from_bytes(utf8str);
-  return w;
+static vector<int> inversePermutation(const vector<int>& permutation) {
+    int size = permutation.size();
+    vector<int> inverse(size);
+    for (int position = 0; position < size; position++) {
+        for (int i = 0; i < size; i++) {
+            if (permutation[i] == position + 1) {
+                inverse[position] = i;
+                break;
+            }
+        }
+    }
+    return inverse;
 }
 
-// Нахождение обратного числа по модулю 256 (перебором)
-int modInverse256(int a) {
-  a &= 0xFF;
-  if (a < 0) a += 256;
-  for (int x = 1; x < 256; ++x) {
-    if (((a * x) & 0xFF) == 1) return x;
-  }
-  return -1;
+// шифрует текст методом столбцовой перестановки
+wstring encryptColumnarTransposition(const wstring& text, const wstring& key) {
+    if (key.empty()) {
+        throw invalid_argument("ключ не может быть пустым");
+    }
+
+    vector<int> keyPermutation = generateKeyPermutation(key);
+    int keySize = keyPermutation.size();
+    int textLength = text.length();
+    int rowCount = (textLength + keySize - 1) / keySize;
+    int paddedLength = rowCount * keySize;
+
+    wstring paddedText = text;
+    paddedText.append(paddedLength - textLength, L' ');
+
+    vector<vector<wchar_t>> matrix(rowCount, vector<wchar_t>(keySize));
+    for (int row = 0; row < rowCount; row++) {
+        for (int col = 0; col < keySize; col++) {
+            matrix[row][col] = paddedText[row * keySize + col];
+        }
+    }
+
+    vector<vector<wchar_t>> permutedMatrix(rowCount, vector<wchar_t>(keySize));
+    for (int col = 0; col < keySize; col++) {
+        int permutedCol = keyPermutation[col] - 1;
+        for (int row = 0; row < rowCount; row++) {
+            permutedMatrix[row][permutedCol] = matrix[row][col];
+        }
+    }
+
+    wstring result;
+    for (int row = 0; row < rowCount; row++) {
+        for (int col = 0; col < keySize; col++) {
+            result += permutedMatrix[row][col];
+        }
+    }
+    return result;
 }
 
-// Проверяем, что 2×2-матрица обратима mod 256: gcd(det, 256) == 1
-bool isInvertible2x2Mod256(const vector<vector<int>>& mat) {
-  int a = mat[0][0] & 0xFF;
-  int b = mat[0][1] & 0xFF;
-  int c = mat[1][0] & 0xFF;
-  int d = mat[1][1] & 0xFF;
-  int det = ((a * d) - (b * c)) & 0xFF;
-  if (det < 0) det += 256;
-  return std::gcd(det, 256) == 1;
+// дешифрует текст, зашифрованный методом столбцовой перестановки
+wstring decryptColumnarTransposition(const wstring& cipherText,
+                                     const wstring& key) {
+    if (key.empty()) {
+        throw invalid_argument("ключ не может быть пустым");
+    }
+
+    vector<int> keyPermutation = generateKeyPermutation(key);
+    vector<int> inversePerm = inversePermutation(keyPermutation);
+    int keySize = keyPermutation.size();
+    int cipherLength = cipherText.length();
+
+    if (cipherLength % keySize != 0) {
+        throw invalid_argument("длина текста должна быть кратна длине ключа");
+    }
+
+    int rowCount = cipherLength / keySize;
+    vector<vector<wchar_t>> matrix(rowCount, vector<wchar_t>(keySize));
+
+    for (int row = 0; row < rowCount; row++) {
+        for (int col = 0; col < keySize; col++) {
+            matrix[row][col] = cipherText[row * keySize + col];
+        }
+    }
+
+    vector<vector<wchar_t>> restoredMatrix(rowCount, vector<wchar_t>(keySize));
+    for (int permutedCol = 0; permutedCol < keySize; permutedCol++) {
+        int originalCol = inversePerm[permutedCol];
+        for (int row = 0; row < rowCount; row++) {
+            restoredMatrix[row][originalCol] = matrix[row][permutedCol];
+        }
+    }
+
+    wstring result;
+    for (int row = 0; row < rowCount; row++) {
+        for (int col = 0; col < keySize; col++) {
+            result += restoredMatrix[row][col];
+        }
+    }
+    return result;
 }
 
-// Ввод ключа 2×2 от пользователя
-optional<vector<vector<int>>> inputHillKeyBytes() {
-  vector<vector<int>> key(2, vector<int>(2));
-  while (true) {
-    cout << "Введите ключ (2×2 матрица, 4 числа 0..255 через пробел),\n"
-            "или \"cancel\" для отмены:\n";
-    cout << "a11 a12 a21 a22: ";
-    string line;
-    getline(cin, line);
-    if (line == "cancel" || line == "Cancel") {
-      return nullopt;
+// генерирует случайный ключ для шифрования перестановкой
+wstring generateRandomTranspositionKey(int minLength, int maxLength) {
+    static const wstring allowedChars =
+        L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+        L"0123456789!@#$%^&*()-_=+[]{}|;:,.<>?";
+
+    if (allowedChars.empty()) {
+        throw runtime_error("пустой ключ не может быть");
     }
-    int a, b, c, d;
-    try {
-      size_t pos = 0;
-      a = stoi(line, &pos);
-      line = line.substr(pos);
-      b = stoi(line, &pos);
-      line = line.substr(pos);
-      c = stoi(line, &pos);
-      line = line.substr(pos);
-      d = stoi(line, &pos);
-    } catch (...) {
-      cout << "Некорректный ввод. Повторите.\n";
-      continue;
+
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> lengthDist(minLength, maxLength);
+    uniform_int_distribution<> charDist(0, allowedChars.size() - 1);
+
+    int keyLength = lengthDist(gen);
+    wstring key;
+
+    for (int i = 0; i < keyLength; ++i) {
+        key += allowedChars[charDist(gen)];
     }
-    if (a < 0 || a > 255 || b < 0 || b > 255 || c < 0 || c > 255 || d < 0 ||
-        d > 255) {
-      cout << "Элементы должны быть в диапазоне 0..255.\n";
-      continue;
-    }
-    key[0][0] = a;
-    key[0][1] = b;
-    key[1][0] = c;
-    key[1][1] = d;
-    if (!isInvertible2x2Mod256(key)) {
-      cout << "Матрица не обратима mod 256 (det не взаимно прост с 256). "
-              "Повторите.\n";
-      continue;
-    }
+
     return key;
-  }
-}
-
-// Шифрование байт блоками 2×2 по модулю 256
-vector<uint8_t> encryptHillBytes(const vector<uint8_t>& rawBytes,
-                                 const vector<vector<int>>& key) {
-  vector<uint8_t> data = rawBytes;
-  if (data.size() % 2 != 0) {
-    data.push_back(0x00);  // паддинг 0x00, если нечётно
-  }
-  vector<uint8_t> out(data.size());
-  for (size_t i = 0; i < data.size(); i += 2) {
-    int x1 = data[i];
-    int x2 = data[i + 1];
-    int y1 = ((key[0][0] * x1 + key[0][1] * x2) & 0xFF);
-    int y2 = ((key[1][0] * x1 + key[1][1] * x2) & 0xFF);
-    out[i] = static_cast<uint8_t>(y1);
-    out[i + 1] = static_cast<uint8_t>(y2);
-  }
-  return out;
-}
-
-// Дешифровка байт блоками 2×2 по модулю 256
-vector<uint8_t> decryptHillBytes(const vector<uint8_t>& cipherBytes,
-                                 const vector<vector<int>>& key) {
-  // Сначала находим обратную ключевую матрицу K^{-1} mod 256
-  int a = key[0][0] & 0xFF;
-  int b = key[0][1] & 0xFF;
-  int c = key[1][0] & 0xFF;
-  int d = key[1][1] & 0xFF;
-  int det = ((a * d) - (b * c)) & 0xFF;
-  if (det < 0) det += 256;
-  int invDet = modInverse256(det);
-  vector<vector<int>> invKey(2, vector<int>(2));
-  invKey[0][0] = (d * invDet) & 0xFF;
-  invKey[0][1] = ((-b) * invDet) & 0xFF;
-  if (invKey[0][1] < 0) invKey[0][1] += 256;
-  invKey[1][0] = ((-c) * invDet) & 0xFF;
-  if (invKey[1][0] < 0) invKey[1][0] += 256;
-  invKey[1][1] = (a * invDet) & 0xFF;
-  if (invKey[1][1] < 0) invKey[1][1] += 256;
-
-  vector<uint8_t> data = cipherBytes;
-  if (data.size() % 2 != 0) {
-    data.push_back(0x00);
-  }
-  vector<uint8_t> out(data.size());
-  for (size_t i = 0; i < data.size(); i += 2) {
-    int y1 = data[i];
-    int y2 = data[i + 1];
-    int x1 = ((invKey[0][0] * y1 + invKey[0][1] * y2) & 0xFF);
-    int x2 = ((invKey[1][0] * y1 + invKey[1][1] * y2) & 0xFF);
-    out[i] = static_cast<uint8_t>(x1);
-    out[i + 1] = static_cast<uint8_t>(x2);
-  }
-  return out;
-}
-
-vector<vector<int>> generateRandomHillKey() {
-  random_device rd;
-  mt19937 gen(rd());
-  uniform_int_distribution<int> dist(0, 255);
-
-  vector<vector<int>> key(2, vector<int>(2));
-  while (true) {
-    key[0][0] = dist(gen);
-    key[0][1] = dist(gen);
-    key[1][0] = dist(gen);
-    key[1][1] = dist(gen);
-
-    if (isInvertible2x2Mod256(key)) {
-      return key;
-    }
-  }
 }

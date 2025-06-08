@@ -14,20 +14,20 @@
 
 using namespace std;
 
-// Конвертирует wstring в UTF-8 байты
+// конвертация wstring -> UTF
 vector<uint8_t> wstringToUtf8Bytes(const std::wstring& w);
 
-// Конвертирует UTF-8 байты в wstring
+// Наооборот 
 wstring utf8BytesToWString(const std::vector<uint8_t>& bytes);
 
-// Вводит ключ 2×2, проверяет обратимость mod 256
+// вводит ключ 2×2, проверяет обратимость mod 256
 optional<vector<vector<int>>> inputHillKeyBytes();
 
-// Шифрует байты блоками по 2 (Hill Cipher mod 256)
+// шифрует байты блоками по 2 
 vector<uint8_t> encryptHillBytes(const vector<uint8_t>& rawBytes,
                                  const vector<vector<int>>& key);
 
-// Дешифрует байты блоками по 2 (Hill Cipher mod 256)
+// джешифрует байты блоками по 2 
 vector<uint8_t> decryptHillBytes(const vector<uint8_t>& cipherBytes,
                                  const vector<vector<int>>& key);
 

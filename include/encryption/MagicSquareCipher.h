@@ -3,21 +3,20 @@
 
 #include <string>
 #include <vector>
+#include <cmath>
 
-extern "C" {
+using namespace std;
 
 // строим магический квадрат
-std::vector<std::vector<int>> buildMagicSquare(int n);
+vector<std::vector<int>> buildMagicSquare(int n);
 
 // шифрование
-std::wstring encryptWithMagicSquare(const std::wstring& text, int n);
+wstring encryptWithMagicSquare(const wstring& text, int n);
 
 // расшифровка
-std::wstring decryptWithMagicSquare(const std::wstring& cipherText, int n);
+wstring decryptWithMagicSquare(const wstring& cipherText, int n);
 
 // генерация ключа
 int generateMagicSquareKey(int textLength);
-
-}
 
 #endif

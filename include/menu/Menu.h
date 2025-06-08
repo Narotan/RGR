@@ -1,13 +1,18 @@
 #ifndef MENU_H
 #define MENU_H
 
-#include <string>
 #include <iostream>
 #include <limits>
+#include <string>
 
+// менюшка для выбора метода шифрования
 void methodChoice(int& method);
+
+// менюшка для выбора объекта шифрования
 void objectChoice(int& object);
-void actionChoice(int& action); 
+
+// менюшка для выбора шифрует/дешифруем
+void actionChoice(int& action);
 
 void clearScreen();
 
