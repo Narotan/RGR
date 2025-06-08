@@ -19,6 +19,9 @@ set(MAIN_SOURCES
     main.cpp
     src/file_utils/FilesUtils.cpp
     src/menu/Menu.cpp
+    src/encryption/HillChiper.cpp
+    src/encryption/ColumnarTransposition.cpp
+    src/encryption/MagicSquareCipher.cpp
 )
 
 # Алгоритмы в отдельных библиотеках
@@ -62,3 +65,5 @@ install(FILES
     ${PROJECT_SOURCE_DIR}/README.md
     DESTINATION share/doc/cryptoapp
 )
+
+add_compile_options(-Wno-deprecated-declarations)
