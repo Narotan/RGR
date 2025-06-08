@@ -15,7 +15,7 @@ wstring encryptColumnarTransposition(const wstring& text, const wstring& key);
 wstring decryptColumnarTransposition(const wstring& cipherText,
                                      const wstring& key);
 
-// генерирует случайный ключ для шифрования перестановкой
-wstring generateRandomTranspositionKey(int minLength, int maxLength);
+// генерирует случайный ключ для шифрования перестановкой от 5-12 символов 
+wstring generateRandomTranspositionKey();
 
 #endif
