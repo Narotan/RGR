@@ -9,6 +9,9 @@
 #include <locale>
 #include <stdexcept>
 #include <string>
+#include <vector>
+#include <fstream>
+#include <cstdint>
 
 using namespace std;
 
