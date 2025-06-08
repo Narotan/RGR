@@ -15,10 +15,10 @@
 using namespace std;
 
 // конвертация wstring -> UTF
-vector<uint8_t> wstringToUtf8Bytes(const std::wstring& w);
+vector<uint8_t> wstringToUtf8Bytes(const wstring& w);
 
 // Наооборот 
-wstring utf8BytesToWString(const std::vector<uint8_t>& bytes);
+wstring utf8BytesToWString(const vector<uint8_t>& bytes);
 
 // вводит ключ 2×2, проверяет обратимость mod 256
 optional<vector<vector<int>>> inputHillKeyBytes();
@@ -31,8 +31,10 @@ vector<uint8_t> encryptHillBytes(const vector<uint8_t>& rawBytes,
 vector<uint8_t> decryptHillBytes(const vector<uint8_t>& cipherBytes,
                                  const vector<vector<int>>& key);
 
+// генератор ключа 
 vector<vector<int>> generateRandomHillKey();
 
+// проверка ключа
 bool isInvertible2x2Mod256(const vector<vector<int>>& mat);
 
 #endif

@@ -1,25 +1,21 @@
 #ifndef COLUMNAR_TRANSPOSITION_H
 #define COLUMNAR_TRANSPOSITION_H
 
-#include <algorithm>
-#include <cwctype>
-#include <locale>
-#include <random>
-#include <stdexcept>
 #include <string>
 #include <vector>
+#include <stdexcept>
+#include <random>
 
 using namespace std;
 
-// шифрование
-wstring encryptColumnarTransposition(const wstring& text,
-                                     const wstring& key);
+// шифрует текст методом столбцовой перестановки
+wstring encryptColumnarTransposition(const wstring& text, const wstring& key);
 
-// расшифрование
+// дешифрует текст, зашифрованный методом столбцовой перестановки
 wstring decryptColumnarTransposition(const wstring& cipherText,
                                      const wstring& key);
 
-// генерация ключа
-wstring generateRandomTranspositionKey(int minLength = 5, int maxLength = 12);
+// генерирует случайный ключ для шифрования перестановкой
+wstring generateRandomTranspositionKey(int minLength, int maxLength);
 
 #endif
