@@ -14,6 +14,7 @@ void objectChoice(int& object);
 // менюшка для выбора шифрует/дешифруем
 void actionChoice(int& action);
 
+// функа которая чистит экран консоли после выбора варианта 
 void clearScreen();
 
 #endif

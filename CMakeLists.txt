@@ -4,7 +4,7 @@ project(CryptoApp LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# --- Настройка RPATH для macOS ---
+# --- Настройка RPATH для macOS и Linux ---
 set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 set(CMAKE_SKIP_BUILD_RPATH OFF)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH OFF)
@@ -66,4 +66,17 @@ install(FILES
     DESTINATION share/doc/cryptoapp
 )
 
+# ----------------------------------------
+# Настройки CPack (для создания .deb пакета)
+# ----------------------------------------
+
+set(CPACK_GENERATOR "TGZ")
+
+set(CPACK_PACKAGE_NAME "cryptoapp")
+set(CPACK_PACKAGE_VERSION "1.0.0")
+set(CPACK_PACKAGE_CONTACT "you@example.com")
+
+include(CPack)
+
+# Предупреждения
 add_compile_options(-Wno-deprecated-declarations)
