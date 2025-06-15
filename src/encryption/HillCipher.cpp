@@ -1,4 +1,4 @@
-#include "../../include/encryption/HillChiper.h"
+#include "../../include/encryption/HillCipher.h"
 
 using namespace std;
 

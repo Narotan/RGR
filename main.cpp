@@ -5,11 +5,12 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "encryption/ColumnarTransposition.h"
 #include "encryption/MagicSquareCipher.h"
 #include "files_utils/FilesUtils.h"
-#include "include/encryption/HillChiper.h"
+#include "include/encryption/HillCipher.h"
 #include "menu/Menu.h"
 
 using namespace std;
@@ -58,18 +59,10 @@ int main() {
                      << endl;
                 cout << "Метод: ";
                 switch (method) {
-                    case MAGIC_SQUARE:
-                        cout << "Magic Square";
-                        break;
-                    case HILL_CIPHER:
-                        cout << "Hill Cipher";
-                        break;
-                    case COLUMNAR_TRANSPOSITION:
-                        cout << "Метод перестановок";
-                        break;
-                    default:
-                        cout << "Неизвестно";
-                        break;
+                    case MAGIC_SQUARE: cout << "Magic Square"; break;
+                    case HILL_CIPHER: cout << "Hill Cipher"; break;
+                    case COLUMNAR_TRANSPOSITION: cout << "Метод перестановок"; break;
+                    default: cout << "Неизвестно"; break;
                 }
                 cout << endl << endl;
 
@@ -87,28 +80,33 @@ int main() {
                     cout << "Введите путь до исходного файла: ";
                     getline(cin, sourcePath);
 
-                    if (method == HILL_CIPHER) {
+                    if (action == ENCRYPT) {
+                        // Шифруем файл — читаем как байты
                         inputBytes = readBytesFromFile(sourcePath);
                         if (inputBytes.empty()) {
-                            wcerr << L"Не удалось получить содержимое файла."
-                                  << endl;
-                            cout << "\nНажмите Enter для возврата в меню..."
-                                 << endl;
+                            wcerr << L"Не удалось получить содержимое файла." << endl;
+                            cout << "\nНажмите Enter для возврата в меню..." << endl;
                             cin.get();
                             continue;
                         }
+
+                        // Переводим байты -> base64 -> wstring
+                        string b64 = base64Encode(inputBytes);
+                        inputText = utf8ToWstring(b64);
+
                     } else {
+                        // Расшифровываем файл — читаем как текст (зашифрованный wstring)
                         inputText = getTextFromFile(sourcePath);
                         if (inputText.empty()) {
-                            wcerr << L"Не удалось получить содержимое файла."
-                                  << endl;
-                            cout << "\nНажмите Enter для возврата в меню..."
-                                 << endl;
+                            wcerr << L"Не удалось прочитать зашифрованный текст из файла." << endl;
+                            cout << "\nНажмите Enter для возврата в меню..." << endl;
                             cin.get();
                             continue;
                         }
                     }
                 }
+
+
 
                 vector<uint8_t> outputBytes;
                 wstring processedText;
@@ -117,54 +115,46 @@ int main() {
                     case MAGIC_SQUARE: {
                         int n = 0;
                         while (true) {
-                            cout << "Нажмите Enter для автоматического выбора "
-                                    "ключа,\n"
-                                 << "или введите нечётный размер магического "
-                                    "квадрата (n),\n"
-                                 << "где n*n >= длина текста ("
-                                 << inputText.size() << "): ";
+                            cout << "Нажмите Enter для автоматического выбора ключа,\n"
+                                 << "или введите нечётный размер магического квадрата (n),\n"
+                                 << "где n*n >= длина текста (" << inputText.size() << "): ";
                             string line;
                             getline(cin, line);
 
                             if (line.empty()) {
-                                n = generateMagicSquareKey(
-                                    static_cast<int>(inputText.size()));
+                                n = generateMagicSquareKey(static_cast<int>(inputText.size()));
                                 cout << "Сгенерированный ключ: " << n << endl;
                                 break;
                             }
-
                             try {
                                 n = stoi(line);
                             } catch (...) {
-                                cout << "Ошибка: введите корректное число."
-                                     << endl;
+                                cout << "Ошибка: введите корректное число." << endl;
                                 continue;
                             }
-
-                            if (n % 2 == 0 ||
-                                n * n < static_cast<int>(inputText.size())) {
-                                cout << "Ошибка: n должен быть нечётным и n*n "
-                                        ">= длина текста."
-                                     << endl;
+                            if (n % 2 == 0 || n * n < static_cast<int>(inputText.size())) {
+                                cout << "Ошибка: n должен быть нечётным и n*n >= длина текста." << endl;
                                 continue;
                             }
                             break;
                         }
 
-                        processedText =
-                            (action == ENCRYPT)
-                                ? encryptWithMagicSquare(inputText, n)
-                                : decryptWithMagicSquare(inputText, n);
+                        if (action == ENCRYPT) {
+                            processedText = encryptWithMagicSquare(inputText, n);
+                            outputBytes = wstringToUtf8Bytes(processedText);
+                        } else {
+                            processedText = decryptWithMagicSquare(inputText, n);
+                            string tmp = wstringToUtf8(processedText);
+                            outputBytes = base64Decode(tmp);
+                        }
                         break;
                     }
 
                     case HILL_CIPHER: {
                         vector<vector<int>> key;
                         while (true) {
-                            cout << "Нажмите Enter для генерации 2×2 ключа "
-                                    "автоматически,\n"
-                                 << "или введите вручную 4 целых числа от 0 до "
-                                    "255:\n";
+                            cout << "Нажмите Enter для генерации 2×2 ключа автоматически,\n"
+                                << "или введите вручную 4 целых числа от 0 до 255:\n";
                             string line;
                             getline(cin, line);
 
@@ -176,46 +166,50 @@ int main() {
                                     cout << endl;
                                 }
                                 break;
-                            } else {
-                                istringstream iss(line);
-                                int a, b, c, d;
-                                if (iss >> a >> b >> c >> d) {
-                                    key = {{a, b}, {c, d}};
-                                    if (!isInvertible2x2Mod256(key)) {
-                                        cout << "Матрица не обратима по модулю "
-                                                "256. Повторите ввод.\n";
-                                        continue;
-                                    }
-                                    break;
-                                } else {
-                                    cout << "Некорректный ввод. Повторите.\n";
+                            }
+                            istringstream iss(line);
+                            int a, b, c, d;
+                            if (iss >> a >> b >> c >> d) {
+                                key = {{a, b}, {c, d}};
+                                if (!isInvertible2x2Mod256(key)) {
+                                    cout << "Матрица не обратима по модулю 256. Повторите ввод.\n";
+                                    continue;
                                 }
+                                break;
+                            } else {
+                                cout << "Некорректный ввод. Повторите.\n";
                             }
                         }
 
                         if (inputBytes.empty()) {
-                            inputBytes = wstringToUtf8Bytes(inputText);
+                            string tmp = wstringToUtf8(inputText);
+                            inputBytes = base64Decode(tmp);
                         }
 
-                        outputBytes = (action == ENCRYPT)
-                                          ? encryptHillBytes(inputBytes, key)
-                                          : decryptHillBytes(inputBytes, key);
+                        if (action == ENCRYPT) {
+                            vector<uint8_t> encryptedBytes = encryptHillBytes(inputBytes, key);
+                            string b64 = base64Encode(encryptedBytes);
+                            processedText = utf8ToWstring(b64);
+                            outputBytes = wstringToUtf8Bytes(processedText);
+                        } else {
+                            string tmp = wstringToUtf8(inputText);
+                            vector<uint8_t> decodedBytes = base64Decode(tmp);
+                            vector<uint8_t> decryptedBytes = decryptHillBytes(decodedBytes, key);
+                            outputBytes = decryptedBytes;
+                        }
                         break;
                     }
+
 
                     case COLUMNAR_TRANSPOSITION: {
                         wstring transpositionKey;
                         while (true) {
-                            cout << "Нажмите Enter для автоматической "
-                                    "генерации ключа,\n"
-                                 << "или введите ключ (любые символы, "
-                                    "рекомендуется длина 5-12 символов): ";
-
+                            cout << "Нажмите Enter для автоматической генерации ключа,\n"
+                                 << "или введите ключ (рекомендуется длина 5-12 символов): ";
                             wstring inputLine;
                             getline(wcin, inputLine);
-                            if (inputLine.size() == 0) {
-                                transpositionKey =
-                                    generateRandomTranspositionKey();
+                            if (inputLine.empty()) {
+                                transpositionKey = generateRandomTranspositionKey();
                                 break;
                             } else {
                                 transpositionKey = inputLine;
@@ -223,37 +217,22 @@ int main() {
                             }
                         }
 
-                        wcout << L"Сгенерированный ключ: " << transpositionKey
-                              << endl;
+                        wcout << L"Используемый ключ: " << transpositionKey << endl;
 
                         if (action == ENCRYPT) {
-                            processedText = encryptColumnarTransposition(
-                                inputText, transpositionKey);
+                            processedText = encryptColumnarTransposition(inputText, transpositionKey);
+                            outputBytes = wstringToUtf8Bytes(processedText);
                         } else {
-                            try {
-                                processedText = decryptColumnarTransposition(
-                                    inputText, transpositionKey);
-                            } catch (const invalid_argument& e) {
-                                wcerr << L"Ошибка: " << e.what() << endl;
-                                processedText = L"";
-                            }
+                            processedText = decryptColumnarTransposition(inputText, transpositionKey);
+                            string tmp = wstringToUtf8(processedText);
+                            outputBytes = base64Decode(tmp);
                         }
-
                         break;
                     }
                 }
 
-                // Проверка результата для всех методов
-                bool resultEmpty = false;
-                if (method == HILL_CIPHER) {
-                    resultEmpty = outputBytes.empty();
-                } else {
-                    resultEmpty = processedText.empty();
-                }
-
-                if (resultEmpty) {
-                    wcerr << L"Не удалось выполнить операцию. Результат пуст."
-                          << endl;
+                if (outputBytes.empty()) {
+                    wcerr << L"Не удалось выполнить операцию. Результат пуст." << endl;
                     cout << "\nНажмите Enter для возврата в меню..." << endl;
                     cin.get();
                     continue;
@@ -263,15 +242,9 @@ int main() {
                 string savePath;
                 getline(cin, savePath);
 
-                if (method == HILL_CIPHER) {
-                    writeBytesToFile(outputBytes, savePath);
-                } else {
-                    writeTextToFile(processedText, savePath);
-                }
+                writeBytesToFile(outputBytes, savePath);
 
-                cout << "\nРезультат успешно сохранён. Нажмите Enter для "
-                        "возврата в меню..."
-                     << endl;
+                cout << "\nРезультат успешно сохранён. Нажмите Enter для возврата в меню..." << endl;
                 cin.get();
             }
         }

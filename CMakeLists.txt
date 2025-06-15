@@ -19,14 +19,14 @@ set(MAIN_SOURCES
     main.cpp
     src/file_utils/FilesUtils.cpp
     src/menu/Menu.cpp
-    src/encryption/HillChiper.cpp
+    src/encryption/HillCipher.cpp
     src/encryption/ColumnarTransposition.cpp
     src/encryption/MagicSquareCipher.cpp
 )
 
 # Алгоритмы в отдельных библиотеках
 add_library(MagicSquareLib SHARED src/encryption/MagicSquareCipher.cpp)
-add_library(HillLib         SHARED src/encryption/HillChiper.cpp)
+add_library(HillLib         SHARED src/encryption/HillCipher.cpp)
 add_library(ColumnarLib     SHARED src/encryption/ColumnarTransposition.cpp)
 
 # Include-директория
