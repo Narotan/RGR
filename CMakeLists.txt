@@ -22,17 +22,20 @@ set(MAIN_SOURCES
     src/encryption/HillCipher.cpp
     src/encryption/ColumnarTransposition.cpp
     src/encryption/MagicSquareCipher.cpp
+    src/encryption/MagmaCipher.cpp
 )
 
 # Алгоритмы в отдельных библиотеках
 add_library(MagicSquareLib SHARED src/encryption/MagicSquareCipher.cpp)
 add_library(HillLib         SHARED src/encryption/HillCipher.cpp)
 add_library(ColumnarLib     SHARED src/encryption/ColumnarTransposition.cpp)
+add_library(MagmaLib     SHARED src/encryption/MagmaCipher.cpp)
 
 # Include-директория
 target_include_directories(MagicSquareLib PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(HillLib         PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(ColumnarLib     PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(MagmaLib     PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 # Исполняемый файл
 add_executable(cryptoapp ${MAIN_SOURCES})
@@ -42,6 +45,7 @@ target_link_libraries(cryptoapp
     MagicSquareLib
     HillLib
     ColumnarLib
+    MagmaLib
 )
 
 # Прописать RPATH в исполняемом файле
@@ -49,15 +53,11 @@ set_target_properties(cryptoapp PROPERTIES
     INSTALL_RPATH "@executable_path/../lib"
 )
 
-# ----------------------------------------
-# Инструкции для установки
-# ----------------------------------------
-
 install(TARGETS cryptoapp
     RUNTIME DESTINATION bin
 )
 
-install(TARGETS MagicSquareLib HillLib ColumnarLib
+install(TARGETS MagicSquareLib HillLib ColumnarLib MagmaLib
     LIBRARY DESTINATION lib
 )
 
@@ -65,10 +65,6 @@ install(FILES
     ${PROJECT_SOURCE_DIR}/README.md
     DESTINATION share/doc/cryptoapp
 )
-
-# ----------------------------------------
-# Настройки CPack (для создания .deb пакета)
-# ----------------------------------------
 
 set(CPACK_GENERATOR "TGZ")
 

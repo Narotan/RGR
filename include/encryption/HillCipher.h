@@ -12,29 +12,27 @@
 #include <string>
 #include <vector>
 
-using namespace std;
-
 // конвертация wstring -> UTF
-vector<uint8_t> wstringToUtf8Bytes(const wstring& w);
+std::vector<uint8_t> wstringToUtf8Bytes(const std::wstring& w);
 
 // Наооборот 
-wstring utf8BytesToWString(const vector<uint8_t>& bytes);
+std::wstring utf8BytesToWString(const std::vector<uint8_t>& bytes);
 
 // вводит ключ 2×2, проверяет обратимость mod 256
-optional<vector<vector<int>>> inputHillKeyBytes();
+std::optional<std::vector<std::vector<int>>> inputHillKeyBytes();
 
 // шифрует байты блоками по 2 
-vector<uint8_t> encryptHillBytes(const vector<uint8_t>& rawBytes,
-                                 const vector<vector<int>>& key);
+std::vector<uint8_t> encryptHillBytes(const std::vector<uint8_t>& rawBytes,
+                                 const std::vector<std::vector<int>>& key);
 
 // джешифрует байты блоками по 2 
-vector<uint8_t> decryptHillBytes(const vector<uint8_t>& cipherBytes,
-                                 const vector<vector<int>>& key);
+std::vector<uint8_t> decryptHillBytes(const std::vector<uint8_t>& cipherBytes,
+                                 const std::vector<std::vector<int>>& key);
 
 // генератор ключа 
-vector<vector<int>> generateRandomHillKey();
+std::vector<std::vector<int>> generateRandomHillKey();
 
 // проверка ключа
-bool isInvertible2x2Mod256(const vector<vector<int>>& mat);
+bool isInvertible2x2Mod256(const std::vector<std::vector<int>>& mat);
 
 #endif

@@ -42,7 +42,7 @@ wstring getTextFromConsole() {
 // полуение текста из файла
 wstring getTextFromFile(const string& filePath) {
     try {
-        namespace fs = std::filesystem;
+        namespace fs = filesystem;
 
         if (!fs::exists(filePath)) {
             throw runtime_error("Файл не найден: " + filePath);
@@ -109,13 +109,13 @@ bool writeBytesToFile(const vector<uint8_t>& bytes, const string& filePath) {
 }
 
 // Базовый алфавит Base64
-static const std::string base64_chars =
+static const string base64_chars =
              "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
              "abcdefghijklmnopqrstuvwxyz"
              "0123456789+/";
 
-string base64Encode(const std::vector<uint8_t>& data) {
-    std::string ret;
+string base64Encode(const vector<uint8_t>& data) {
+    string ret;
     int val = 0;
     int valb = -6;
     for (uint8_t c : data) {
@@ -133,12 +133,12 @@ string base64Encode(const std::vector<uint8_t>& data) {
     return ret;
 }
 
-vector<uint8_t> base64Decode(const std::string& encoded) {
-    std::vector<int> T(256, -1);
+vector<uint8_t> base64Decode(const string& encoded) {
+    vector<int> T(256, -1);
     for (int i = 0; i < 64; i++)
         T[base64_chars[i]] = i;
 
-    std::vector<uint8_t> out;
+    vector<uint8_t> out;
     int val = 0, valb = -8;
     for (uint8_t c : encoded) {
         if (T[c] == -1) break;

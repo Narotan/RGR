@@ -1,5 +1,4 @@
 #!/bin/bash
-# setup.sh — автоматическая сборка и установка CryptoApp без конфига
 
 set -e
 
@@ -56,8 +55,16 @@ echo "Устанавливаем в: $INSTALL_PREFIX"
 
 # 3. Сборка
 echo "Сборка проекта..."
-mkdir -p build
-cd build
+# создаём или очищаем папку build
+BUILD_DIR="build"
+if [ -d "$BUILD_DIR" ]; then
+  rm -rf "${BUILD_DIR:?}"/*
+else
+  mkdir "$BUILD_DIR"
+fi
+cd "$BUILD_DIR"
+
+# запускаем CMake, который теперь собирает и MagmaLib
 cmake .. -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX"
 
 # Определяем число потоков

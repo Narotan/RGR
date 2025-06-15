@@ -51,7 +51,7 @@ bool isInvertible2x2Mod256(const vector<vector<int>>& matrix) {
     int d = matrix[1][1] & 0xFF;
     int det = ((a * d) - (b * c)) & 0xFF;
     if (det < 0) det += 256;
-    return std::gcd(det, 256) == 1;
+    return gcd(det, 256) == 1;
 }
 
 // ввод ключа 2×2 от пользователя с проверкой корректности

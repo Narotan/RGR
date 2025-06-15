@@ -5,16 +5,14 @@
 #include <vector>
 #include <cmath>
 
-using namespace std;
-
 // строим магический квадрат
-vector<std::vector<int>> buildMagicSquare(int n);
+std::vector<std::vector<int>> buildMagicSquare(int n);
 
 // шифрование
-wstring encryptWithMagicSquare(const wstring& text, int n);
+std::wstring encryptWithMagicSquare(const std::wstring& text, int n);
 
 // расшифровка
-wstring decryptWithMagicSquare(const wstring& cipherText, int n);
+std::wstring decryptWithMagicSquare(const std::wstring& cipherText, int n);
 
 // генерация ключа
 int generateMagicSquareKey(int textLength);
